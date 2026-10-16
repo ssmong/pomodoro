@@ -1,0 +1,46 @@
+<svg width="440" height="440" viewBox="36 28 440 440" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="body" cx="39%" cy="31%" r="82%">
+      <stop offset="0%" stop-color="#ff705c"/>
+      <stop offset="44%" stop-color="#e12820"/>
+      <stop offset="100%" stop-color="#9c150e"/>
+    </radialGradient>
+    <radialGradient id="leaf" cx="50%" cy="34%" r="72%">
+      <stop offset="0%" stop-color="#63ea9e"/>
+      <stop offset="46%" stop-color="#2fd17c"/>
+      <stop offset="100%" stop-color="#149c59"/>
+    </radialGradient>
+    <linearGradient id="nub" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#43b06e"/>
+      <stop offset="100%" stop-color="#15693b"/>
+    </linearGradient>
+    <filter id="cast" x="-35%" y="-30%" width="170%" height="190%">
+      <feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#3a0705" flood-opacity="0.3"/>
+    </filter>
+    <filter id="blur" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <filter id="leafcast" x="-40%" y="-30%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#063a21" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <!-- tomato body (deep-ripe, glossy sphere) -->
+  <ellipse cx="256" cy="282" rx="184" ry="174" fill="url(#body)" filter="url(#cast)"/>
+
+  <!-- glossy shine -->
+  <ellipse cx="206" cy="212" rx="44" ry="23" fill="#ffffff" opacity="0.5" filter="url(#blur)" transform="rotate(-26 206 212)"/>
+
+  <!-- calyx: sepal star + stem nub -->
+  <g filter="url(#leafcast)">
+    <path d="M256 60 L272.6 94.3 L318.7 94.3 L282.9 117.2 L298.2 155.7 L256 130.7 L213.8 155.7 L229.1 117.2 L193.3 94.3 L239.4 94.3 Z" fill="url(#leaf)" transform="rotate(7 256 112)"/>
+    <rect x="246" y="44" width="20" height="44" rx="9" fill="url(#nub)" transform="rotate(-9 256 66)"/>
+  </g>
+
+  <!-- clock: track ring, progress arc (12->4), hand to 4 o'clock, center cap -->
+  <circle cx="256" cy="280" r="100" fill="none" stroke="#ffffff" stroke-opacity="0.26" stroke-width="20"/>
+  <path d="M256 180 A100 100 0 0 1 342.6 330" fill="none" stroke="#ffffff" stroke-opacity="0.95" stroke-width="20" stroke-linecap="round"/>
+  <line x1="256" y1="280" x2="358.2" y2="339" stroke="#fff7f3" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="256" cy="280" r="21" fill="none" stroke="#ffffff" stroke-opacity="0.30" stroke-width="6"/>
+  <circle cx="256" cy="280" r="17" fill="#fff6f0"/>
+</svg>

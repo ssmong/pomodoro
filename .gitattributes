@@ -1,0 +1,15 @@
+# Normalize line endings: store + check out text as LF everywhere so Windows
+# dev and macOS/Linux CI don't churn CRLF into diffs.
+* text=auto eol=lf
+
+# Binary assets — never touch line endings.
+*.png binary
+*.jpg binary
+*.ico binary
+*.icns binary
+*.woff2 binary
+*.woff binary
+*.ttf binary
+*.otf binary
+*.dmg binary
+*.exe binary

@@ -1,0 +1,1753 @@
+:root {
+  color-scheme: light;
+  --canvas: #f7f8fb;
+  --surface-1: #ffffff;
+  --surface-2: #eef1f7;
+  --surface-3: #dfe4ee;
+  --hairline: #d8dde8;
+  --hairline-strong: #b8c0d0;
+  --ink: #111318;
+  --ink-muted: #3f4654;
+  --ink-subtle: #626b7a;
+  --ink-tertiary: #8a93a3;
+  --primary: #5e6ad2;
+  --primary-hover: #828fff;
+  --primary-focus: rgba(94, 105, 209, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background: transparent;
+  color: var(--ink);
+  font-family:
+    "Inter Variable",
+    Inter,
+    "Pretendard Variable",
+    Pretendard,
+    "SF Pro Display",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+  letter-spacing: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+.app-shell {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  background: rgba(247, 248, 251, 0.98);
+  /* PIP translucency: on Tauri, transparent windows can't use native per-window
+     opacity on Windows, so the PIP 불투명도 dims the content via this variable
+     (driven by src/desktop.js). Defaults to 1 → no effect outside PIP / on Electron. */
+  opacity: var(--app-opacity, 1);
+  transition: opacity 140ms ease;
+}
+
+.chrome {
+  height: 48px;
+  flex: 0 0 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 16px;
+  border-bottom: 1px solid var(--hairline);
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-app-region: drag;
+}
+
+.chrome-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.brand-mark {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--primary);
+}
+
+.chrome-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.icon-button,
+.pip-exit {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--ink-subtle);
+  background: transparent;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.icon-button:hover,
+.icon-button.is-active,
+.pip-exit:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.content.settings-open {
+  justify-content: flex-start;
+  overflow-y: auto;
+}
+
+.timer-panel {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.mode-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+}
+
+.mode-name {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 6px 9px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: var(--surface-1);
+}
+
+.state-text {
+  color: var(--ink-tertiary);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.timer-visual {
+  position: relative;
+  width: 240px;
+  max-width: calc(100vw - 76px);
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+}
+
+.settings-open .timer-panel {
+  flex: 0 0 auto;
+  gap: 8px;
+  justify-content: flex-start;
+  min-height: auto;
+  padding-bottom: 2px;
+}
+
+.settings-open .mode-strip {
+  display: none;
+}
+
+.settings-open .timer-visual {
+  width: 124px;
+}
+
+.progress-ring {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transform: rotate(-90deg);
+}
+
+.progress-track,
+.progress-value {
+  fill: none;
+  stroke-width: 12px;
+}
+
+.progress-track {
+  stroke: var(--surface-3);
+}
+
+.progress-value {
+  stroke: var(--primary);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 180ms linear;
+}
+
+.time-readout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+  /* Rise is instant (reveal rules zero the delay); descent waits the same beat
+     as the controls so the number and buttons move back together. */
+  transition: bottom 240ms ease 220ms;
+}
+
+/* Hover the ring: the readout rises and the in-ring controls fade in. */
+.timer-visual:hover .time-readout,
+.timer-visual:focus-within .time-readout {
+  bottom: 12%;
+  transition-delay: 0ms;
+}
+
+.time-readout span {
+  color: var(--ink-subtle);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.time-readout strong {
+  color: var(--ink);
+  font-size: 52px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-open .time-readout strong {
+  font-size: 28px;
+}
+
+.settings-open .time-readout span,
+.settings-open .controls {
+  display: none;
+}
+
+.controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  /* Reveal is instant (the reveal rules zero the delay); hiding waits a beat so
+     the button lingers briefly after start/pause instead of snapping away. */
+  transition:
+    opacity 200ms ease 220ms,
+    transform 200ms ease 220ms;
+  z-index: 2;
+  -webkit-app-region: no-drag;
+}
+
+.timer-visual:hover .controls,
+.timer-visual:focus-within .controls {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-delay: 0ms;
+}
+
+/* PIP: reveal the controls + lift the readout while the cursor is inside the
+   widget. Driven by a JS `data-hover` state (App.jsx) backed by a real
+   cursor-position poll, not CSS :hover — the small always-on-top window can
+   drop a fast pointer-exit and leave :hover stuck. */
+.app-shell.is-pip[data-hover="true"] .controls {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-delay: 0ms;
+}
+
+.app-shell.is-pip[data-hover="true"] .time-readout {
+  bottom: 12%;
+  transition-delay: 0ms;
+}
+
+/* Pre-start idle (full duration, e.g. 25:00): keep the start button out at rest,
+   no hover needed. Skipped while the compact settings preview is open. */
+.content:not(.settings-open) .timer-visual:has(.controls.is-idle) .controls {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-delay: 0ms;
+}
+
+.content:not(.settings-open) .timer-visual:has(.controls.is-idle) .time-readout {
+  bottom: 12%;
+  transition-delay: 0ms;
+}
+
+/* In-ring controls: compact icon-only buttons, shaped + colored per theme.
+   Sized to the normal (240px) ring; PIP scales them down to match its 170px ring. */
+.timer-visual .controls .button {
+  min-width: 0;
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  border-radius: 9999px;
+}
+
+.timer-visual .controls .button svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* PIP: scale the in-ring controls back down for the smaller 170px ring. */
+.is-pip .timer-visual .controls .button {
+  width: 40px;
+  height: 40px;
+}
+
+.is-pip .timer-visual .controls .button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.timer-visual .controls .button span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* Per-theme button shape: Linear never pill-rounds → rounded square;
+   Figma stays bold full circles; Apple stays circular chips. */
+.theme-minimal .timer-visual .controls .button {
+  border-radius: 8px;
+}
+
+.theme-figma .timer-visual .controls .button {
+  border-radius: 9999px;
+}
+
+.theme-apple .timer-visual .controls .button {
+  border-radius: 9999px;
+}
+
+.button {
+  min-width: 112px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.button.primary {
+  color: #ffffff;
+  background: var(--primary);
+}
+
+.button.primary:hover {
+  background: var(--primary-hover);
+}
+
+.button.secondary {
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.button.secondary:hover {
+  border-color: var(--hairline-strong);
+  background: var(--surface-2);
+}
+
+.settings-panel,
+.stats-panel {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--surface-1);
+}
+
+.settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.stats-total {
+  color: var(--ink-subtle);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--hairline);
+  gap: 1px;
+}
+
+.stats-metric {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: rgba(247, 248, 251, 0.9);
+}
+
+.stats-metric span {
+  color: var(--ink-subtle);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.stats-metric strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stats-row {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: rgba(247, 248, 251, 0.88);
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.stats-row-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.stats-row-main > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-row small {
+  color: var(--ink-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.stats-row strong {
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.empty-state {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border: 1px dashed var(--hairline);
+  border-radius: 8px;
+  color: var(--ink-subtle);
+  font-size: 13px;
+  text-align: center;
+}
+
+.stats-clear {
+  width: 100%;
+}
+
+.setting-row,
+.setting-grid label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.setting-row {
+  flex-wrap: wrap;
+}
+
+.setting-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.setting-grid label {
+  min-width: 0;
+  align-items: stretch;
+  flex-direction: column;
+  padding: 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: rgba(247, 248, 251, 0.88);
+}
+
+.segment-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: rgba(247, 248, 251, 0.88);
+}
+
+.segment-control button {
+  min-width: 54px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  color: var(--ink-subtle);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.segment-control button.selected {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.number-field,
+.range-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-subtle);
+  font-size: 12px;
+}
+
+.number-field input {
+  width: 64px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  outline: none;
+  color: var(--ink);
+  background: var(--surface-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.number-field input:focus,
+.range-field input:focus-visible,
+.segment-control button:focus-visible,
+.button:focus-visible,
+.icon-button:focus-visible,
+.pip-exit:focus-visible {
+  outline: 2px solid var(--primary-focus);
+  outline-offset: 2px;
+}
+
+.range-field {
+  min-width: 190px;
+}
+
+.range-field input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 128px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.range-field input::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--surface-3);
+}
+
+.range-field input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 9999px;
+  background: var(--primary);
+}
+
+.theme-minimal {
+  /* Linear's signature: near-black canvas with a faint blue tint, a charcoal
+     surface ladder carried by hairlines, light-gray ink, scarce lavender. */
+  color-scheme: dark;
+  --canvas: #010102;
+  --surface-1: #121316;
+  --surface-2: #1c1d22;
+  --surface-3: #2a2c32;
+  --hairline: #23252a;
+  --hairline-strong: #34363d;
+  --ink: #f7f8f8;
+  --ink-muted: #d0d6e0;
+  --ink-subtle: #8a8f98;
+  --ink-tertiary: #62666d;
+  --primary: #5e6ad2;
+  --primary-hover: #828fff;
+  --primary-focus: rgba(94, 105, 209, 0.5);
+  font-family:
+    "Linear Text",
+    "Inter Variable",
+    Inter,
+    "Pretendard Variable",
+    Pretendard,
+    "SF Pro Display",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+}
+
+.theme-minimal.app-shell {
+  border-color: var(--hairline);
+  border-radius: 16px;
+  background: rgba(1, 1, 2, 0.96);
+}
+
+.theme-minimal .chrome {
+  height: 48px;
+  flex-basis: 48px;
+  border-bottom-color: var(--hairline);
+  background: rgba(13, 14, 18, 0.92);
+}
+
+/* Repaint the surfaces that the base theme hardcodes as light rgba so the
+   dark Linear canvas reads consistently. */
+.theme-minimal .button.secondary,
+.theme-minimal .stats-metric,
+.theme-minimal .stats-row,
+.theme-minimal .setting-grid label,
+.theme-minimal .segment-control {
+  background: var(--surface-1);
+}
+
+/* Linear ring: thin and precise, in keeping with its hairline aesthetic. */
+.theme-minimal .progress-track,
+.theme-minimal .progress-value {
+  stroke-width: 9px;
+}
+
+.theme-minimal .chrome-title,
+.theme-minimal .button,
+.theme-minimal .segment-control button {
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.theme-minimal .time-readout strong,
+.theme-minimal .settings-heading h2 {
+  font-family:
+    "Linear Display",
+    "Inter Variable",
+    Inter,
+    "Pretendard Variable",
+    Pretendard,
+    "SF Pro Display",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+  font-weight: 600;
+}
+
+/* Linear's #1 signature: aggressive negative tracking on display type. */
+.theme-minimal .time-readout strong {
+  letter-spacing: -1.6px;
+}
+
+.theme-minimal .settings-heading h2 {
+  letter-spacing: -0.4px;
+}
+
+/* Linear buttons are compact 8px-radius rectangles (8x14 padding) — the doc
+   explicitly says "Don't pill-round CTAs". */
+.theme-minimal .button {
+  height: 34px;
+  min-width: 104px;
+  border-radius: 8px;
+  padding: 0 14px;
+}
+
+.theme-minimal .settings-panel,
+.theme-minimal .stats-panel,
+.theme-minimal .setting-grid label {
+  border-radius: 12px;
+}
+
+.theme-minimal .stats-summary,
+.theme-minimal .stats-row {
+  border-radius: 8px;
+}
+
+.theme-apple {
+  color-scheme: light;
+  --canvas: #f5f5f7;
+  --surface-1: #ffffff;
+  --surface-2: #f5f5f7;
+  --surface-3: #d2d2d7;
+  --hairline: #e0e0e0;
+  --hairline-strong: #b9b9bd;
+  --ink: #1d1d1f;
+  --ink-muted: #333333;
+  --ink-subtle: #6e6e73;
+  --ink-tertiary: #86868b;
+  --primary: #48484a;
+  --primary-hover: #1d1d1f;
+  --primary-focus: rgba(72, 72, 74, 0.4);
+  --apple-chip: rgba(210, 210, 215, 0.64);
+  font-family:
+    "SF Pro Text",
+    "SF Pro Display",
+    "SF Pro",
+    "Apple SD Gothic Neo",
+    "Pretendard Variable",
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Inter Variable",
+    Inter,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+}
+
+.theme-apple.app-shell {
+  border-color: rgba(0, 0, 0, 0.07);
+  border-radius: 20px;
+  background: rgba(245, 245, 247, 0.94);
+}
+
+.theme-apple .chrome {
+  height: 44px;
+  flex-basis: 44px;
+  border-bottom-color: rgba(0, 0, 0, 0.07);
+  background: rgba(245, 245, 247, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+.theme-apple .content {
+  gap: 14px;
+  padding: 16px;
+}
+
+.theme-apple .chrome-title {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 400;
+  font-family:
+    "SF Pro Text",
+    "SF Pro",
+    "Apple SD Gothic Neo",
+    "Pretendard Variable",
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Inter Variable",
+    Inter,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+}
+
+.theme-apple .brand-mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: var(--primary);
+}
+
+.theme-apple .icon-button,
+.theme-apple .pip-exit {
+  border-radius: 9999px;
+  color: var(--ink-muted);
+}
+
+.theme-apple .icon-button:hover,
+.theme-apple .icon-button.is-active,
+.theme-apple .pip-exit:hover {
+  color: var(--ink);
+  background: var(--apple-chip);
+}
+
+.theme-apple .mode-name,
+.theme-apple .segment-control,
+.theme-apple .button {
+  border-radius: 9999px;
+}
+
+.theme-apple .mode-name {
+  padding: 7px 12px;
+  border-color: transparent;
+  background: var(--surface-1);
+  font-weight: 600;
+}
+
+.theme-apple .state-text,
+.theme-apple .time-readout span {
+  color: var(--ink-tertiary);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.theme-apple .time-readout strong {
+  color: var(--ink);
+  font-size: 54px;
+  font-weight: 600;
+  line-height: 1.07;
+  letter-spacing: -0.5px;
+  font-family:
+    "SF Pro Display",
+    "SF Pro Text",
+    "SF Pro",
+    "Apple SD Gothic Neo",
+    "Pretendard Variable",
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Inter Variable",
+    Inter,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+}
+
+/* Apple sets a larger timer (54px); without this, the theme rule (equal
+   specificity, later in the file) beats .settings-open and the timer stays
+   huge when the settings/stats panel opens. */
+.theme-apple .settings-open .time-readout strong {
+  font-size: 28px;
+}
+
+.theme-apple .progress-track {
+  stroke: rgba(0, 0, 0, 0.11);
+}
+
+/* Apple pill: generous ~44px touch target, 11x22 → 0 20px at widget scale. */
+.theme-apple .button {
+  min-width: 104px;
+  height: 44px;
+  padding: 0 20px;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.theme-apple .button:active,
+.theme-apple .icon-button:active,
+.theme-apple .pip-exit:active,
+.theme-apple .segment-control button:active {
+  transform: scale(0.95);
+}
+
+.theme-apple .button.primary {
+  color: #ffffff;
+  background: var(--primary);
+}
+
+.theme-apple .button.primary:hover {
+  background: var(--primary-hover);
+}
+
+.theme-apple .button.secondary {
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  background: transparent;
+}
+
+.theme-apple .button.secondary:hover {
+  border-color: var(--primary-hover);
+  color: var(--primary-hover);
+  background: transparent;
+}
+
+.theme-apple .settings-panel,
+.theme-apple .stats-panel {
+  gap: 14px;
+  padding: 16px;
+  border-color: rgba(0, 0, 0, 0.08);
+  border-radius: 18px;
+  background: var(--surface-1);
+}
+
+.theme-apple .settings-heading h2 {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.2px;
+  font-family:
+    "SF Pro Display",
+    "SF Pro Text",
+    "SF Pro",
+    "Apple SD Gothic Neo",
+    "Pretendard Variable",
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Inter Variable",
+    Inter,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+}
+
+.theme-apple .setting-grid label,
+.theme-apple .stats-row,
+.theme-apple .stats-summary {
+  border-color: rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background: var(--surface-1);
+}
+
+.theme-apple .setting-row {
+  min-height: 34px;
+  padding: 8px 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.theme-apple .setting-grid {
+  gap: 10px;
+}
+
+.theme-apple .setting-grid label {
+  gap: 8px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.theme-apple .stats-summary {
+  background: var(--hairline);
+}
+
+.theme-apple .stats-metric {
+  gap: 6px;
+  padding: 10px;
+  background: var(--surface-1);
+}
+
+.theme-apple .stats-metric span,
+.theme-apple .stats-row small,
+.theme-apple .stats-total {
+  color: var(--ink-tertiary);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.theme-apple .stats-metric strong,
+.theme-apple .stats-row strong {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.theme-apple .stats-row {
+  min-height: 34px;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.theme-apple .segment-control {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(245, 245, 247, 0.92);
+}
+
+.theme-apple .segment-control button {
+  min-width: 54px;
+  height: 28px;
+  border-radius: 9999px;
+  color: var(--ink-subtle);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+/* iOS-style segmented control: the selected segment is a white pill on the
+   gray track, not a blue fill — keeps the accent blue reserved for the CTA. */
+.theme-apple .segment-control button.selected {
+  color: var(--ink);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+}
+
+.theme-apple .number-field input {
+  width: 64px;
+  height: 34px;
+  border-color: rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  background: #ffffff;
+  font-size: 14px;
+  line-height: 1.47;
+}
+
+.theme-apple .range-field input::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
+}
+
+.theme-figma {
+  color-scheme: light;
+  --canvas: #ffffff;
+  --surface-1: #ffffff;
+  --surface-2: #f3f3f0;
+  --surface-3: #e8e8e3;
+  --hairline: #111111;
+  --hairline-strong: #111111;
+  --ink: #000000;
+  --ink-muted: #191919;
+  --ink-subtle: #373737;
+  --ink-tertiary: #5f5f5f;
+  --primary: #000000;
+  --primary-hover: #2b2b2b;
+  --primary-focus: rgba(0, 0, 0, 0.28);
+  --figma-lime: #c7f464;
+  --figma-cream: #fff1cf;
+  --figma-lilac: #d9c8ff;
+  --figma-mint: #c8f7dc;
+  --figma-coral: #ff8577;
+  --figma-surface-soft: #f5f5f0;
+  font-family:
+    figmaSans,
+    "figmaSans Fallback",
+    "Inter Variable",
+    Inter,
+    "Pretendard Variable",
+    Pretendard,
+    "SF Pro Display",
+    system-ui,
+    helvetica,
+    sans-serif;
+}
+
+.theme-figma.app-shell {
+  border-color: #000000;
+  border-radius: 24px;
+  background: #ffffff;
+}
+
+.theme-figma .chrome {
+  height: 50px;
+  flex-basis: 50px;
+  border-bottom-color: rgba(0, 0, 0, 0.16);
+  background: #ffffff;
+}
+
+.theme-figma .chrome-title {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 540;
+  line-height: 1.35;
+}
+
+.theme-figma .brand-mark {
+  border-radius: 9999px;
+  background: var(--ink);
+}
+
+.theme-figma .icon-button,
+.theme-figma .pip-exit {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  color: var(--ink);
+  background: var(--figma-surface-soft);
+}
+
+.theme-figma .icon-button:hover,
+.theme-figma .icon-button.is-active,
+.theme-figma .pip-exit:hover {
+  color: #ffffff;
+  background: var(--primary);
+}
+
+/* Figma's {rounded.pill} token is 50px for text CTAs/tabs (icon buttons use
+   {rounded.full} 9999px, set separately). Visually full-round at this scale. */
+.theme-figma .mode-name,
+.theme-figma .segment-control,
+.theme-figma .segment-control button,
+.theme-figma .button {
+  border-radius: 50px;
+}
+
+.theme-figma .mode-name {
+  padding: 6px 12px;
+  border-color: transparent;
+  background: var(--figma-cream);
+  font-size: 13px;
+  font-weight: 540;
+  line-height: 1.35;
+}
+
+.theme-figma .time-readout strong,
+.theme-figma .settings-heading h2 {
+  font-weight: 340;
+  line-height: 1;
+}
+
+/* Figma's editorial display cadence: tight negative tracking on the big read. */
+.theme-figma .time-readout strong {
+  letter-spacing: -1px;
+}
+
+.theme-figma .time-readout span,
+.theme-figma .state-text {
+  color: var(--ink);
+  font-weight: 330;
+  line-height: 1.4;
+}
+
+.theme-figma .progress-track {
+  stroke: rgba(0, 0, 0, 0.12);
+}
+
+/* Figma ring: bold and chunky, matching its confident heavy shapes. */
+.theme-figma .progress-track,
+.theme-figma .progress-value {
+  stroke-width: 16px;
+}
+
+/* Black is reserved for CTAs; a progress ring is a decorative indicator, so it
+   takes Figma's signature lime color block rather than black. */
+.theme-figma .progress-value {
+  stroke: var(--figma-lime);
+}
+
+/* Figma pill: chunky ~44px, 10x20 → 0 22px, bolder 480 label. */
+.theme-figma .button {
+  height: 44px;
+  min-width: 104px;
+  padding: 0 22px;
+  font-size: 15px;
+  font-weight: 480;
+  line-height: 1.4;
+}
+
+.theme-figma .button.primary {
+  background: var(--primary);
+}
+
+.theme-figma .button.primary:hover {
+  background: var(--primary-hover);
+}
+
+.theme-figma .button.secondary {
+  border-color: transparent;
+  background: #ffffff;
+}
+
+.theme-figma .button.secondary:hover {
+  background: var(--figma-surface-soft);
+}
+
+.theme-figma .settings-panel {
+  border-color: transparent;
+  border-radius: 24px;
+  padding: 24px;
+  background: var(--figma-lime);
+}
+
+.theme-figma .stats-panel {
+  border-color: transparent;
+  border-radius: 24px;
+  padding: 24px;
+  background: var(--figma-cream);
+}
+
+.theme-figma .setting-grid label,
+.theme-figma .stats-row,
+.theme-figma .stats-summary {
+  border-color: transparent;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.theme-figma .stats-metric {
+  background: #ffffff;
+}
+
+.theme-figma .setting-row,
+.theme-figma .setting-grid label {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 330;
+  line-height: 1.4;
+}
+
+.theme-figma .setting-grid label,
+.theme-figma .stats-row {
+  padding: 12px;
+}
+
+.theme-figma .settings-heading h2 {
+  font-size: 18px;
+  font-weight: 540;
+  line-height: 1.35;
+  letter-spacing: -0.26px;
+}
+
+.theme-figma .stats-row {
+  color: var(--ink);
+}
+
+.theme-figma .stats-metric span,
+.theme-figma .stats-row small,
+.theme-figma .stats-total {
+  color: var(--ink);
+  font-weight: 330;
+}
+
+.theme-figma .stats-metric strong,
+.theme-figma .stats-row strong {
+  color: var(--ink);
+  font-weight: 540;
+}
+
+.theme-figma .segment-control {
+  border-color: transparent;
+  background: #ffffff;
+}
+
+.theme-figma .segment-control button {
+  min-width: 54px;
+  height: 28px;
+  font-weight: 480;
+}
+
+.theme-figma .segment-control button.selected {
+  color: #ffffff;
+  background: var(--primary);
+}
+
+.theme-figma .number-field input {
+  border-color: transparent;
+  border-radius: 8px;
+}
+
+.theme-figma .range-field input::-webkit-slider-runnable-track {
+  height: 6px;
+  background: var(--figma-surface-soft);
+}
+
+.theme-figma .range-field input::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  background: var(--ink);
+}
+
+/* Use .app-shell.is-pip (0,2,0) so it overrides the theme's .theme-*.app-shell
+   background/border rules, which would otherwise keep the PIP window opaque or
+   leave a visible edge (especially figma's black border) over dark wallpapers. */
+.app-shell.is-pip {
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+}
+
+.is-pip .content {
+  padding: 16px 14px 14px;
+  overflow: visible;
+}
+
+.is-pip .timer-panel {
+  gap: 14px;
+  justify-content: center;
+  -webkit-app-region: drag;
+}
+
+.is-pip .timer-visual {
+  width: 170px;
+  max-width: none;
+}
+
+.is-pip .progress-track,
+.is-pip .progress-value {
+  stroke-width: 13px;
+}
+
+.is-pip .progress-track {
+  stroke: rgba(17, 19, 24, 0.36);
+  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.32))
+    drop-shadow(0 2px 8px rgba(1, 1, 2, 0.16));
+  transition:
+    stroke 500ms ease,
+    filter 500ms ease;
+}
+
+.is-pip .progress-value {
+  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.22))
+    drop-shadow(0 3px 10px rgba(1, 1, 2, 0.22));
+}
+
+.is-pip .time-readout {
+  gap: 0;
+}
+
+.is-pip .time-readout span {
+  color: var(--ink-tertiary);
+  transition: color 500ms ease;
+}
+
+.is-pip .time-readout strong {
+  color: #111318;
+  font-size: 36px;
+  transition: color 500ms ease;
+}
+
+.is-pip.pip-contrast-light .progress-track {
+  stroke: rgba(247, 248, 248, 0.42);
+  filter: drop-shadow(0 2px 8px rgba(1, 1, 2, 0.44));
+}
+
+.is-pip.pip-contrast-light .time-readout span {
+  color: rgba(247, 248, 248, 0.76);
+}
+
+.is-pip.pip-contrast-light .time-readout strong {
+  color: #f7f8f8;
+}
+
+/* Top-right hover overlay: opacity slider sits directly left of the buttons. */
+.pip-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+  -webkit-app-region: no-drag;
+}
+
+.app-shell.is-pip[data-hover="true"] .pip-overlay,
+.pip-overlay:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Consistent small hit target for the PIP action buttons. */
+.is-pip .pip-exit,
+.is-pip .pip-close {
+  width: 24px;
+  height: 24px;
+}
+
+/* Opacity slider — small, on the same top band as the action buttons. */
+.pip-opacity {
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border-radius: 8px;
+  background: rgba(20, 20, 22, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.pip-opacity input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 58px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pip-opacity input::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.pip-opacity input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  margin-top: -4px;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Linear PIP: charcoal surface buttons + slider, hairline borders, lavender thumb. */
+.theme-minimal .pip-exit,
+.theme-minimal .pip-close {
+  border: 1px solid var(--hairline);
+  background: var(--surface-1);
+  color: var(--ink);
+}
+
+.theme-minimal .pip-exit:hover,
+.theme-minimal .pip-close:hover {
+  background: var(--surface-2);
+}
+
+.theme-minimal .pip-opacity {
+  background: rgba(18, 19, 22, 0.8);
+  border: 1px solid var(--hairline);
+}
+
+.theme-minimal .pip-opacity input::-webkit-slider-runnable-track {
+  background: var(--surface-3);
+}
+
+.theme-minimal .pip-opacity input::-webkit-slider-thumb {
+  background: var(--primary);
+  box-shadow: none;
+}
+
+/* Figma PIP: white pill slider with a bold black thumb (buttons already inherit
+   the circular surface-soft icon-button style). */
+.theme-figma .pip-opacity {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.theme-figma .pip-opacity input::-webkit-slider-runnable-track {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.theme-figma .pip-opacity input::-webkit-slider-thumb {
+  background: var(--ink);
+  box-shadow: none;
+}
+
+/* Apple PIP: frosted slider with an iOS white thumb (traffic-light buttons below). */
+.theme-apple .pip-opacity {
+  background: rgba(245, 245, 247, 0.7);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+}
+
+.theme-apple .pip-opacity input::-webkit-slider-runnable-track {
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.theme-apple .pip-opacity input::-webkit-slider-thumb {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+/* Over a dark background (light-contrast mode) a frosted/white slider glares —
+   darken the pill and lighten track/thumb so it recedes, in any theme. */
+.is-pip.pip-contrast-light .pip-opacity {
+  background: rgba(30, 30, 32, 0.48);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.is-pip.pip-contrast-light .pip-opacity input::-webkit-slider-runnable-track {
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.is-pip.pip-contrast-light .pip-opacity input::-webkit-slider-thumb {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Minimal keeps its lavender thumb over dark wallpapers — the accent stays visible. */
+.theme-minimal.is-pip.pip-contrast-light .pip-opacity input::-webkit-slider-thumb {
+  background: var(--primary);
+}
+
+/* PIP reuses the shared in-ring hover-reveal controls defined above; only the
+   glassy button treatment below is PIP-specific. */
+.is-pip .button {
+  min-width: 0;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid rgba(45, 47, 52, 0.5);
+  background: rgba(247, 248, 248, 0.9);
+  color: #111318;
+  box-shadow: 0 4px 12px rgba(1, 1, 2, 0.14);
+  backdrop-filter: blur(10px);
+}
+
+.is-pip .button.primary {
+  color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.14);
+  background: var(--primary);
+}
+
+/* Figma's --primary is black (invisible on a dark PIP wallpaper) — use its lime
+   highlight instead, with a dark glyph. */
+.theme-figma.is-pip .button.primary {
+  background: var(--figma-lime);
+  color: #17280b;
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+/* Keep the PIP play button lime on hover (base :hover would repaint it dark). */
+.theme-figma.is-pip .button.primary:hover {
+  background: #d6f884;
+  color: #17280b;
+}
+
+/* Apple PIP controls: borders + reset glyph on graphite/apple-ink, not the
+   Linear-neutral (rgba(45,47,52) / #111318) baked into the shared .is-pip rules. */
+.theme-apple.is-pip .button {
+  border-color: rgba(72, 72, 74, 0.5);
+}
+
+.theme-apple.is-pip .button.secondary {
+  color: #1d1d1f;
+}
+
+.theme-apple.is-pip .button.primary {
+  border-color: rgba(72, 72, 74, 0.5);
+  background: rgba(72, 72, 74, 0.94);
+}
+
+.is-pip .button.secondary {
+  color: #111318;
+  background: rgba(247, 248, 248, 0.92);
+}
+
+.is-pip .button:hover {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.is-pip .button.primary:hover {
+  background: var(--primary-hover);
+}
+
+.is-pip .button span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.pip-actions {
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Apple PIP controls are macOS-style traffic-light dots (green expand, red
+   close) but keep Windows ordering: close sits on the right. */
+.theme-apple .pip-actions {
+  gap: 8px;
+}
+
+.theme-apple .pip-exit,
+.theme-apple .pip-close {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-radius: 9999px;
+}
+
+.theme-apple .pip-close,
+.theme-apple .pip-close:hover {
+  background: #ff5f57;
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+}
+
+.theme-apple .pip-exit,
+.theme-apple .pip-exit:hover {
+  background: #28c840;
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+}
+
+/* Draw the macOS glyphs directly — bold and tinted a darker shade of the dot,
+   like real traffic lights — rather than lucide's thin line icons that vanish
+   at this size: an × on close, fullscreen triangles on expand. */
+.theme-apple .pip-exit svg,
+.theme-apple .pip-close svg {
+  display: none;
+}
+
+.theme-apple .pip-close::before,
+.theme-apple .pip-close::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 2.4px;
+  border-radius: 2px;
+  background: #7c1512;
+}
+
+.theme-apple .pip-close::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.theme-apple .pip-close::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.theme-apple .pip-exit::before,
+.theme-apple .pip-exit::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background: #0c5a1c;
+}
+
+.theme-apple .pip-exit::before {
+  clip-path: polygon(100% 0, 100% 65%, 35% 0);
+}
+
+.theme-apple .pip-exit::after {
+  clip-path: polygon(0 100%, 65% 100%, 0 35%);
+}
+
+@media (max-width: 390px) {
+  .content {
+    padding: 12px;
+  }
+
+  .settings-panel,
+  .stats-panel {
+    padding: 14px;
+  }
+
+  .setting-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .setting-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .range-field {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .range-field input {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-value,
+  .button,
+  .icon-button,
+  .pip-overlay,
+  .pip-exit,
+  .is-pip .progress-track,
+  .is-pip .time-readout span,
+  .is-pip .time-readout strong {
+    transition: none;
+  }
+}
